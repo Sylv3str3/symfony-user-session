@@ -1,0 +1,39 @@
+# Liste toutes les sessions (admin)
+user_session_list_all:
+    path: /admin/sessions
+    controller: UserSessionBundle\Controller\UserSessionController::listAllSessions
+    methods: [GET]
+    defaults:
+        _role: ROLE_ADMIN
+
+# Liste les sessions de l'utilisateur courant
+user_session_list_user:
+    path: /sessions
+    controller: UserSessionBundle\Controller\UserSessionController::listUserSessions
+    methods: [GET]
+    defaults:
+        _role: [ROLE_USER, ROLE_ADMIN]
+
+# Récupère une session spécifique
+user_session_get:
+    path: /sessions/{sessionId}
+    controller: UserSessionBundle\Controller\UserSessionController::getSession
+    methods: [GET]
+    defaults:
+        _role: ROLE_USER
+
+# Supprime une session spécifique
+user_session_delete:
+    path: /sessions/{sessionId}
+    controller: UserSessionBundle\Controller\UserSessionController::deleteSession
+    methods: [DELETE]
+    defaults:
+        _role: ROLE_USER
+
+# Révoque toutes les sessions de l'utilisateur courant
+user_session_revoke_all:
+    path: /sessions/revoke-all
+    controller: UserSessionBundle\Controller\UserSessionController::deleteAllUserSessions
+    methods: [POST]
+    defaults:
+        _role: ROLE_USER
