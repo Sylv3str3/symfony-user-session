@@ -11,7 +11,7 @@ use Symfony\Component\Uid\Uuid;
 abstract class AbstractUserSession
 {
     #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME)]
+    #[ORM\Column(type: UuidType::NAME, name: 'session_id')]
     protected Uuid $id;
 
     #[ORM\Column(length: 255)]
