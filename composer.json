@@ -2,7 +2,7 @@
     "name": "sylvestre/user-session-bundle",
     "description": "Advanced JWT multi-device user session management for Symfony applications",
     "type": "symfony-bundle",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "license": "MIT",
     "authors": [
         {

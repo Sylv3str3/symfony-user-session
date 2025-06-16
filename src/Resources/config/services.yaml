@@ -6,6 +6,7 @@ services:
 
     UserSessionBundle\Service\UserSessionManager:
         arguments:
+            $entityClass: '%user_session.entity.class%'
             $dispatcher: '@event_dispatcher'
             $entityManager: '@doctrine.orm.entity_manager'
             $maxSessionsPerUser: '%user_session.max_sessions_per_user%'

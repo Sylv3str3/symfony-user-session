@@ -15,24 +15,24 @@ use UserSessionBundle\Events;
 
 class UserSessionManager
 {
-    private int $maxSessionsPerUser;
-    private int $updateThresholdSeconds;
+    private string $entityClass;
 
     public function __construct(
+        string $entityClass,
         private readonly EventDispatcherInterface $dispatcher,
         private readonly EntityManagerInterface $entityManager,
-        int $maxSessionsPerUser = 5,
-        int $updateThresholdSeconds = 300
+        private readonly int $maxSessionsPerUser = 5,
+        private readonly int $updateThresholdSeconds = 300
     ) {
-        $this->maxSessionsPerUser = $maxSessionsPerUser;
-        $this->updateThresholdSeconds = $updateThresholdSeconds;
+        $this->entityClass = $entityClass;
     }
 
-    public function createSession(object $user, string $provider, Request $request): UserSession
+    public function createSession(object $user, string $provider, Request $request): object
     {
         $this->cleanOldSessions($user);
 
-        $session = new UserSession();
+        $class = $this->entityClass;
+        $session = new $class();
         $session->setUser($user)
             ->setProvider($provider)
             ->setUserAgent($request->headers->get('User-Agent'))
@@ -45,14 +45,13 @@ class UserSessionManager
         return $session;
     }
 
-    public function validateSession(string $sessionId): ?UserSession
+    public function validateSession(string $sessionId): ?object
     {
-        $session = $this->entityManager->getRepository(UserSession::class)
+        $session = $this->entityManager->getRepository($this->entityClass)
             ->find($sessionId);
 
         if (!$session) {
             $this->dispatcher->dispatch(new UserSessionInvalidatedEvent($sessionId), Events::USER_SESSION_INVALIDATED);
-
             return null;
         }
 
@@ -70,7 +69,7 @@ class UserSessionManager
 
     public function deleteSession(string $sessionId): bool
     {
-        $session = $this->entityManager->getRepository(UserSession::class)
+        $session = $this->entityManager->getRepository($this->entityClass)
             ->find($sessionId);
 
         if (!$session) {
@@ -86,7 +85,7 @@ class UserSessionManager
 
     public function deleteAllUserSessions(object $user): void
     {
-        $sessions = $this->entityManager->getRepository(UserSession::class)
+        $sessions = $this->entityManager->getRepository($this->entityClass)
             ->findBy(['user' => $user]);
 
         foreach ($sessions as $session) {
@@ -101,7 +100,7 @@ class UserSessionManager
      */
     public function listAllSessions(): array
     {
-        return $this->entityManager->getRepository(UserSession::class)
+        return $this->entityManager->getRepository($this->entityClass)
             ->findBy([], ['lastActiveAt' => 'DESC']);
     }
 
@@ -110,7 +109,7 @@ class UserSessionManager
      */
     public function listUserSessions(object $user): array
     {
-        return $this->entityManager->getRepository(UserSession::class)
+        return $this->entityManager->getRepository($this->entityClass)
             ->findBy(
                 ['user' => $user],
                 ['lastActiveAt' => 'DESC']
@@ -120,10 +119,10 @@ class UserSessionManager
     /**
      * Récupère une session par son ID
      */
-    public function getSessionById(string $sessionId): ?UserSession
+    public function getSessionById(string $sessionId): ?object
     {
-        return $this->entityManager->getRepository(UserSession::class)
-            ->findOneBy(['id'=> $sessionId]);
+        return $this->entityManager->getRepository($this->entityClass)
+            ->findOneBy(['id' => $sessionId]);
     }
 
     /**
@@ -131,7 +130,7 @@ class UserSessionManager
      */
     public function countActiveSessions(object $user): int
     {
-        return $this->entityManager->getRepository(UserSession::class)
+        return $this->entityManager->getRepository($this->entityClass)
             ->count(['user' => $user]);
     }
 
@@ -143,33 +142,6 @@ class UserSessionManager
         return $this->countActiveSessions($user) < $this->maxSessionsPerUser;
     }
 
-    private function cleanOldSessions(object $user): void
-    {
-        $sessions = $this->entityManager->getRepository(UserSession::class)
-            ->findBy(
-                ['user' => $user],
-                ['lastActiveAt' => 'DESC']
-            );
-
-        if (count($sessions) >= $this->maxSessionsPerUser) {
-            for ($i = $this->maxSessionsPerUser - 1; $i < count($sessions); $i++) {
-                $this->entityManager->remove($sessions[$i]);
-            }
-            $this->entityManager->flush();
-        }
-    }
-
-    private function generateDeviceFingerprint(Request $request): string
-    {
-        $data = [
-            $request->headers->get('User-Agent'),
-            $request->getClientIp(),
-            $request->headers->get('Accept-Language'),
-        ];
-
-        return hash('sha256', implode('|', $data));
-    }
-
     /**
      * Liste toutes les sessions avec pagination
      */
@@ -177,7 +149,7 @@ class UserSessionManager
     {
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('s')
-           ->from(UserSession::class, 's')
+           ->from($this->entityClass, 's')
            ->orderBy('s.lastActiveAt', 'DESC')
            ->setFirstResult(($page - 1) * $limit)
            ->setMaxResults($limit);
@@ -200,7 +172,7 @@ class UserSessionManager
     {
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('s')
-           ->from(UserSession::class, 's')
+           ->from($this->entityClass, 's')
            ->where('s.user = :user')
            ->setParameter('user', $user)
            ->orderBy('s.lastActiveAt', 'DESC')
@@ -216,5 +188,32 @@ class UserSessionManager
             'limit' => $limit,
             'pages' => ceil(count($paginator) / $limit)
         ];
+    }
+
+    private function cleanOldSessions(object $user): void
+    {
+        $sessions = $this->entityManager->getRepository($this->entityClass)
+            ->findBy(
+                ['user' => $user],
+                ['lastActiveAt' => 'DESC']
+            );
+
+        if (count($sessions) >= $this->maxSessionsPerUser) {
+            for ($i = $this->maxSessionsPerUser - 1; $i < count($sessions); $i++) {
+                $this->entityManager->remove($sessions[$i]);
+            }
+            $this->entityManager->flush();
+        }
+    }
+
+    private function generateDeviceFingerprint(Request $request): string
+    {
+        $data = [
+            $request->headers->get('User-Agent'),
+            $request->getClientIp(),
+            $request->headers->get('Accept-Language'),
+        ];
+
+        return hash('sha256', implode('|', $data));
     }
 }

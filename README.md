@@ -45,6 +45,7 @@ Ce bundle a été créé pour résoudre plusieurs défis courants liés à la ge
 - Configuration simple via YAML
 - Événements personnalisables
 - Adaptable à différentes stratégies d'authentification
+- Système d'entité extensible
 
 ## Prérequis
 
@@ -58,7 +59,7 @@ Ce bundle a été créé pour résoudre plusieurs défis courants liés à la ge
 1. Installez le bundle via Composer :
 
 ```bash
-composer require sylv3str3/symfony-user-session-bundle
+composer require sylvestre/user-session-bundle
 ```
 
 2. Activez le bundle dans `config/bundles.php` :
@@ -93,6 +94,7 @@ Dans votre fichier `config/packages/user_session.yaml` :
 user_session:
   max_sessions_per_user: 5 # Nombre maximum de sessions simultanées par utilisateur
   update_threshold: 300 # Durée en secondes pour mettre à jour la session (par défaut: 5 minutes)
+  user_session_class: App\Entity\CustomUserSession # Optionnel : Votre entité personnalisée
 ```
 
 ### Import des routes
@@ -230,6 +232,131 @@ Le bundle émet plusieurs événements que vous pouvez écouter :
 - `UserSessionCreatedEvent` : Lors de la création d'une nouvelle session
 - `UserSessionDeletedEvent` : Lors de la suppression d'une session
 - `UserSessionInvalidatedEvent` : Lorsqu'une session est invalidée
+
+## Extension du Bundle
+
+### Entité Personnalisée (Optionnel)
+
+Si vous souhaitez étendre les fonctionnalités de l'entité UserSession, vous pouvez créer votre propre entité. Voici quelques exemples :
+
+#### 1. Exemple Simple
+
+```php
+// src/Entity/CustomUserSession.php
+namespace App\Entity;
+
+use Doctrine\ORM\Mapping as ORM;
+use UserSessionBundle\Model\AbstractUserSession;
+
+#[ORM\Entity]
+#[ORM\Table(name: 'user_sessions')]
+class CustomUserSession extends AbstractUserSession
+{
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private User $user;
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function setUser(object $user): static
+    {
+        $this->user = $user;
+        return $this;
+    }
+}
+```
+
+#### 2. Exemple avec API Platform
+
+```php
+// src/Entity/CustomUserSession.php
+namespace App\Entity;
+
+use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\Metadata\Get;
+use ApiPlatform\Metadata\GetCollection;
+use Doctrine\ORM\Mapping as ORM;
+use UserSessionBundle\Model\AbstractUserSession;
+
+#[ApiResource(
+    operations: [
+        new Get(),
+        new GetCollection()
+    ],
+    security: "is_granted('ROLE_USER')"
+)]
+#[ORM\Entity]
+#[ORM\Table(name: 'user_sessions')]
+class CustomUserSession extends AbstractUserSession
+{
+    #[ORM\ManyToOne(targetEntity: User::class)]
+    #[ORM\JoinColumn(nullable: false)]
+    private User $user;
+
+    #[ORM\Column(type: 'string', nullable: true)]
+    private ?string $deviceName = null;
+
+    #[ORM\Column(type: 'json', nullable: true)]
+    private array $metadata = [];
+
+    public function getUser(): User
+    {
+        return $this->user;
+    }
+
+    public function setUser(object $user): static
+    {
+        $this->user = $user;
+        return $this;
+    }
+
+    public function getDeviceName(): ?string
+    {
+        return $this->deviceName;
+    }
+
+    public function setDeviceName(?string $deviceName): static
+    {
+        $this->deviceName = $deviceName;
+        return $this;
+    }
+
+    public function getMetadata(): array
+    {
+        return $this->metadata;
+    }
+
+    public function setMetadata(array $metadata): static
+    {
+        $this->metadata = $metadata;
+        return $this;
+    }
+}
+```
+
+#### 3. Configuration
+
+Après avoir créé votre entité personnalisée, configurez le bundle pour l'utiliser :
+
+```yaml
+# config/packages/user_session.yaml
+user_session:
+  user_session_class: App\Entity\CustomUserSession
+  max_sessions_per_user: 5
+  update_threshold: 300
+```
+
+#### 4. Migration
+
+Générez et appliquez la migration pour votre nouvelle entité :
+
+```bash
+php bin/console make:migration
+php bin/console doctrine:migrations:migrate
+```
 
 ## Dépannage
 

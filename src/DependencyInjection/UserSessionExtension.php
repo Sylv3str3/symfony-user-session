@@ -22,11 +22,17 @@ class UserSessionExtension extends Extension
 
         $container->setParameter(
             'user_session.max_sessions_per_user',
-            $config['max_sessions_per_user'] ?? 5
+            $config['max_sessions_per_user']
         );
+        
         $container->setParameter(
             'user_session.update_threshold',
             $config['update_threshold']
+        );
+
+        $container->setParameter(
+            'user_session.entity.class',
+            $config['user_session_class']
         );
     }
 }
