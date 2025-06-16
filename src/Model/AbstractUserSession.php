@@ -11,8 +11,8 @@ use Symfony\Component\Uid\Uuid;
 abstract class AbstractUserSession
 {
     #[ORM\Id]
-    #[ORM\Column(type: UuidType::NAME, name: 'session_id')]
-    protected Uuid $id;
+    #[ORM\Column(type: UuidType::NAME)]
+    protected Uuid $sessionId;
 
     #[ORM\Column(length: 255)]
     protected string $provider;
@@ -31,14 +31,14 @@ abstract class AbstractUserSession
 
     public function __construct()
     {
-        $this->id = Uuid::v4();
+        $this->sessionId = Uuid::v4();
         $this->createdAt = new DateTimeImmutable();
         $this->lastActiveAt = new DateTimeImmutable();
     }
 
-    public function getId(): Uuid
+    public function getSessionId(): Uuid
     {
-        return $this->id;
+        return $this->sessionId;
     }
 
     public function getProvider(): string
