@@ -138,11 +138,16 @@ class AuthController
     public function login(Request $request, UserSessionManager $sessionManager)
     {
         // Votre logique d'authentification...
-
+        // Optional: collect device fingerprint data (e.g. from headers)
+        $fingerprintData = [
+            $request->headers->get('X-Device-Fingerprint'), // e.g. sent from app
+            $request->headers->get('User-Agent'),
+        ];
         $session = $sessionManager->createSession(
             $user,
             'email', // ou 'google', 'facebook', etc.
-            $request
+            $request,
+            $fingerprintData // optional, pass null if not available
         );
 
         // Incluez le sessionId dans votre JWT

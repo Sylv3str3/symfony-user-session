@@ -27,7 +27,7 @@ class UserSessionManager
         $this->entityClass = $entityClass;
     }
 
-    public function createSession(object $user, string $provider, Request $request): object
+    public function createSession(object $user, string $provider, Request $request, ?array $fingerprintData = null): object
     {
         $this->cleanOldSessions($user);
 
@@ -36,7 +36,7 @@ class UserSessionManager
         $session->setUser($user)
             ->setProvider($provider)
             ->setUserAgent($request->headers->get('User-Agent'))
-            ->setDeviceId($this->generateDeviceFingerprint($request));
+            ->setDeviceId($this->generateDeviceFingerprint($request, $fingerprintData));
 
         $this->entityManager->persist($session);
         $this->entityManager->flush();
@@ -149,10 +149,10 @@ class UserSessionManager
     {
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('s')
-           ->from($this->entityClass, 's')
-           ->orderBy('s.lastActiveAt', 'DESC')
-           ->setFirstResult(($page - 1) * $limit)
-           ->setMaxResults($limit);
+            ->from($this->entityClass, 's')
+            ->orderBy('s.lastActiveAt', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
 
         $paginator = new Paginator($qb->getQuery());
 
@@ -172,12 +172,12 @@ class UserSessionManager
     {
         $qb = $this->entityManager->createQueryBuilder();
         $qb->select('s')
-           ->from($this->entityClass, 's')
-           ->where('s.user = :user')
-           ->setParameter('user', $user)
-           ->orderBy('s.lastActiveAt', 'DESC')
-           ->setFirstResult(($page - 1) * $limit)
-           ->setMaxResults($limit);
+            ->from($this->entityClass, 's')
+            ->where('s.user = :user')
+            ->setParameter('user', $user)
+            ->orderBy('s.lastActiveAt', 'DESC')
+            ->setFirstResult(($page - 1) * $limit)
+            ->setMaxResults($limit);
 
         $paginator = new Paginator($qb->getQuery());
 
@@ -206,9 +206,9 @@ class UserSessionManager
         }
     }
 
-    private function generateDeviceFingerprint(Request $request): string
+    private function generateDeviceFingerprint(Request $request, ?array $data = null): string
     {
-        $data = [
+        $data ??= [
             $request->headers->get('User-Agent'),
             $request->getClientIp(),
             $request->headers->get('Accept-Language'),
