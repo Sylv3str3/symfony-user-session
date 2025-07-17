@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [1.1.4] - 2025-07-17
+
+### Changed
+
+- Made the `user` relation in `UserSession` nullable
+- Added `onDelete: "SET NULL"` to avoid foreign key errors when a `User` is deleted
+
+### Migration
+
+- Run `php bin/console make:migration && php bin/console doctrine:migrations:migrate` to update the foreign key and make `user_id` nullable
+
+### Notes
+
+- If you want user sessions to be deleted automatically when a `User` is deleted, override the relation with `onDelete: "CASCADE"` in your project
+
 ## [1.1.3] - 2025-07-08
 
 ### Added

@@ -10,15 +10,15 @@ use UserSessionBundle\Model\AbstractUserSession;
 class UserSession extends AbstractUserSession
 {
     #[ORM\ManyToOne(targetEntity: "App\Entity\User")]
-    #[ORM\JoinColumn(nullable: false)]
-    private object $user;
+    #[ORM\JoinColumn(nullable: true, onDelete: "SET NULL")]
+    private ?object $user = null;
 
-    public function getUser(): object
+    public function getUser(): ?object
     {
         return $this->user;
     }
 
-    public function setUser(object $user): static
+    public function setUser(?object $user): static
     {
         $this->user = $user;
         return $this;

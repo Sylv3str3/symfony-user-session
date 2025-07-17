@@ -90,6 +90,6 @@ abstract class AbstractUserSession
         return $this;
     }
 
-    abstract public function getUser(): object;
-    abstract public function setUser(object $user): static;
+    abstract public function getUser(): ?object;
+    abstract public function setUser(?object $user): static;
 }
